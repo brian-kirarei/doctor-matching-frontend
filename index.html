@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Doctor Matching - Voice AI</title>
+  <style>
+    body {
+      font-family: Arial;
+      padding: 40px;
+      background: #f4f6f9;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      background: white;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🎤 Speak Your Symptoms</h2>
+
+  <button onclick="startListening()">Start Voice Input</button>
+
+  <p><strong>Recognized Text:</strong></p>
+  <p id="transcript"></p>
+
+  <div id="result"></div>
+
+<script>
+  const SpeechRecognition = 
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  const recognition = new SpeechRecognition();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+
+  function startListening() {
+    recognition.start();
+  }
+
+  recognition.onresult = async function(event) {
+    const transcript = event.results[0][0].transcript;
+    document.getElementById("transcript").innerText = transcript;
+
+    // Send to backend
+    const response = await fetch("http://localhost:5000/api/diagnose", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ symptoms: transcript })
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      let output = `<h3>Detected Specialty: ${data.detected_specialty}</h3>`;
+
+      data.doctors.forEach(doc => {
+        output += `
+          <p>
+            Dr. ${doc.first_name} ${doc.last_name} 
+            (${doc.specialty})
+          </p>
+        `;
+      });
+
+      document.getElementById("result").innerHTML = output;
+    } else {
+      document.getElementById("result").innerHTML =
+        `<p style="color:red;">${data.error}</p>`;
+    }
+  };
+</script>
+
+</body>
+</html>
