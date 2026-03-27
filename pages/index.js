@@ -1,27 +1,42 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
 
-    const res = await fetch("http://localhost:5000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.success) {
-      localStorage.setItem("token", data.token);
-      router.push("/dashboard");
-    } else {
-      alert("Invalid credentials");
+      if (data.success) {
+        localStorage.setItem("token", data.token);
+        router.push("/dashboard");
+      } else {
+        setError("Invalid credentials");
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Server error. Try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -51,11 +66,16 @@ export default function Login() {
             required
           />
 
+          {error && (
+            <p className="text-red-500 text-sm text-center">{error}</p>
+          )}
+
           <button
             type="submit"
-            className="w-full bg-accent text-white py-3 rounded-lg hover:bg-blue-700 transition"
+            disabled={loading}
+            className="w-full bg-accent text-white py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
           >
-            Login
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
       </div>
